@@ -42,6 +42,9 @@ using System.Windows.Media.Imaging;
 using System.Windows.Controls;
 using Microsoft.WindowsAPICodePack.Dialogs;
 
+//namespace
+using System.Runtime.InteropServices;
+
 // Internal libraries
 using OpenCVWrappers;
 using CppInterop.LandmarkDetector;
@@ -93,6 +96,11 @@ namespace OpenFaceOffline
         // Useful for visualising things
         private volatile int skip_frames = 0;
 
+        //members
+        private const UInt32 MouseEventLeftDown = 0x0002;
+        private const UInt32 MouseEventLeftUp = 0x0004;
+
+
         FpsTracker processing_fps = new FpsTracker();
 
         // For selecting webcams
@@ -106,6 +114,9 @@ namespace OpenFaceOffline
         // For face analysis
         FaceAnalyserManaged face_analyser;
         GazeAnalyserManaged gaze_analyser;
+
+        public bool DetectPose = false;
+        public bool DetectGaze = false;
 
         public bool RecordAligned { get; set; } = false; // Aligned face images
         public bool RecordHOG { get; set; } = false; // HOG features extracted from face images
@@ -145,6 +156,11 @@ namespace OpenFaceOffline
         // Camera calibration parameters
         public float fx = -1, fy = -1, cx = -1, cy = -1;
 
+        //user32 API import
+        [DllImport("user32", EntryPoint = "mouse_event")]
+        private static extern void mouse_event(UInt32 dwFlags, UInt32 dx, UInt32 dy, UInt32 dwData, IntPtr dwExtraInfo);
+
+
         public MainWindow()
         {
             InitializeComponent();
@@ -156,6 +172,16 @@ namespace OpenFaceOffline
 
             String root = AppDomain.CurrentDomain.BaseDirectory;
                         
+            if(!DetectPose)
+            {
+                RecordPose = false;
+                ShowGeometry = false;
+            }
+            if(!DetectGaze)
+            {
+                RecordGaze = false;
+            }
+
             face_model_params = new FaceModelParameters(root, LandmarkDetectorCECLM, LandmarkDetectorCLNF, LandmarkDetectorCLM);
             // Initialize the face detector
             face_detector = new FaceDetector(face_model_params.GetHaarLocation(), face_model_params.GetMTCNNLocation());
@@ -260,17 +286,17 @@ namespace OpenFaceOffline
                 // The face analysis step (for AUs and eye gaze)
                 face_analyser.AddNextFrame(frame, landmark_detector.CalculateAllLandmarks(), detection_succeeding, false);
 
-                gaze_analyser.AddNextFrame(landmark_detector, detection_succeeding, reader.GetFx(), reader.GetFy(), reader.GetCx(), reader.GetCy());
+                //gaze_analyser.AddNextFrame(landmark_detector, detection_succeeding, reader.GetFx(), reader.GetFy(), reader.GetCx(), reader.GetCy());
 
                 // Only the final face will contain the details
                 VisualizeFeatures(frame, visualizer_of, landmark_detector.CalculateAllLandmarks(), landmark_detector.GetVisibilities(), detection_succeeding, true, false, reader.GetFx(), reader.GetFy(), reader.GetCx(), reader.GetCy(), progress);
 
                 // Record an observation
-                RecordObservation(recorder, visualizer_of.GetVisImage(), 0, detection_succeeding, reader.GetFx(), reader.GetFy(), reader.GetCx(), reader.GetCy(), reader.GetTimestamp(), reader.GetFrameNumber());
+                //RecordObservation(recorder, visualizer_of.GetVisImage(), 0, detection_succeeding, reader.GetFx(), reader.GetFy(), reader.GetCx(), reader.GetCy(), reader.GetTimestamp(), reader.GetFrameNumber());
 
                 if(RecordTracked)
                 { 
-                    recorder.WriteObservationTracked();
+                    //recorder.WriteObservationTracked();
                 }
 
                 while (thread_running & thread_paused && skip_frames == 0)
@@ -474,10 +500,12 @@ namespace OpenFaceOffline
 
             double confidence = landmark_detector.GetConfidence();
 
-            List<float> pose = new List<float>();
-            landmark_detector.GetPose(pose, fx, fy, cx, cy);
-            recorder.SetObservationPose(pose);
-
+            if (DetectPose)
+            {
+                List<float> pose = new List<float>();
+                landmark_detector.GetPose(pose, fx, fy, cx, cy);
+                recorder.SetObservationPose(pose);
+            }
             List<Tuple<float, float>> landmarks_2D = landmark_detector.CalculateAllLandmarks();
             List<Tuple<float, float, float>> landmarks_3D = landmark_detector.Calculate3DLandmarks(fx, fy, cx, cy);
             List<float> global_params = landmark_detector.GetRigidParams();
@@ -521,7 +549,10 @@ namespace OpenFaceOffline
             Tuple<float, float> gaze_angle = new Tuple<float, float>(0, 0);
 
             List<float> pose = new List<float>();
-            landmark_detector.GetPose(pose, fx, fy, cx, cy);
+            if (DetectPose)
+            {
+                landmark_detector.GetPose(pose, fx, fy, cx, cy);
+            }
             List<float> non_rigid_params = landmark_detector.GetNonRigidParams();
 
             double confidence = landmark_detector.GetConfidence();
@@ -540,7 +571,7 @@ namespace OpenFaceOffline
             }
             visualizer.SetObservationHOG(face_analyser.GetLatestHOGFeature(), face_analyser.GetHOGRows(), face_analyser.GetHOGCols());
             visualizer.SetObservationLandmarks(landmarks, confidence, visibilities);
-            visualizer.SetObservationPose(pose, confidence);
+            if(DetectPose) visualizer.SetObservationPose(pose, confidence);
             visualizer.SetObservationGaze(gaze_analyser.GetGazeCamera().Item1, gaze_analyser.GetGazeCamera().Item2, landmark_detector.CalculateAllEyeLandmarks(), landmark_detector.CalculateAllEyeLandmarks3D(fx, fy, cx, cy), confidence);
 
             eye_landmarks = landmark_detector.CalculateVisibleEyeLandmarks();
@@ -570,6 +601,21 @@ namespace OpenFaceOffline
                             au_regs_scaled[au_reg.Key] = 1;
                     }
                     auRegGraph.Update(au_regs_scaled);
+
+                    //mad: Test reliability of AU
+                    //Console.WriteLine("AU45: " + au_regs_scaled["AU45"]);
+                    String au1 = "AU12";
+                    String au2 = "AU12";
+                    if (au_regs_scaled[au1] >= 0.1 && au_regs_scaled[au2] >=0.1)
+                    {
+                        double meanVal = (au_regs_scaled[au1] + au_regs_scaled[au2]) / 2;
+                        Console.Beep((int)(5000 * meanVal), 150);
+                        if (meanVal >= 0.45)
+                        {
+                            mouse_event(MouseEventLeftDown, 0, 0, 0, new System.IntPtr());
+                            mouse_event(MouseEventLeftUp, 0, 0, 0, new System.IntPtr());
+                        }
+                    }
                 }
 
                 if (ShowGeometry)
