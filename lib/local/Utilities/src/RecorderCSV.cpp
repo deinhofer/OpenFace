@@ -169,7 +169,7 @@ bool RecorderCSV::Open(std::string output_file_name, bool is_sequence, bool outp
 
 }
 
-void RecorderCSV::WriteLine(int face_id, int frame_num, double time_stamp, bool landmark_detection_success, double landmark_confidence,
+std::string RecorderCSV::WriteLine(int face_id, int frame_num, double time_stamp, bool landmark_detection_success, double landmark_confidence,
 	const cv::Mat_<float>& landmarks_2D, const cv::Mat_<float>& landmarks_3D, const cv::Mat_<float>& pdm_model_params, const cv::Vec6f& rigid_shape_params, cv::Vec6f& pose_estimate,
 	const cv::Point3f& gazeDirection0, const cv::Point3f& gazeDirection1, const cv::Vec2f& gaze_angle, const std::vector<cv::Point2f>& eye_landmarks2d, const std::vector<cv::Point3f>& eye_landmarks3d,
 	const std::vector<std::pair<std::string, double> >& au_intensities, const std::vector<std::pair<std::string, double> >& au_occurences)
@@ -181,106 +181,108 @@ void RecorderCSV::WriteLine(int face_id, int frame_num, double time_stamp, bool 
 		exit(1);
 	}
 
+	std::ostringstream csv_line = std::ostringstream();
+
 	// Making sure fixed and not scientific notation is used
-	output_file << std::fixed;
-	output_file << std::noshowpoint;
+	csv_line << std::fixed;
+	csv_line << std::noshowpoint;
 	if(is_sequence)
 	{
 		
-		output_file << std::setprecision(3);
-		output_file << frame_num << "," << face_id << "," << time_stamp;
-		output_file << std::setprecision(2);
-		output_file << "," << landmark_confidence;
-		output_file << std::setprecision(0);
-		output_file << "," << landmark_detection_success;
+		csv_line << std::setprecision(3);
+		csv_line << frame_num << "," << face_id << "," << time_stamp;
+		csv_line << std::setprecision(2);
+		csv_line << "," << landmark_confidence;
+		csv_line << std::setprecision(0);
+		csv_line << "," << landmark_detection_success;
 	}
 	else
 	{
-		output_file << std::setprecision(3);
-		output_file << face_id << "," << landmark_confidence;
+		csv_line << std::setprecision(3);
+		csv_line << face_id << "," << landmark_confidence;
 	}
 	// Output the estimated gaze
 	if (output_gaze)
 	{
-		output_file << std::setprecision(6);
-		output_file << "," << gazeDirection0.x << "," << gazeDirection0.y << "," << gazeDirection0.z
+		csv_line << std::setprecision(6);
+		csv_line << "," << gazeDirection0.x << "," << gazeDirection0.y << "," << gazeDirection0.z
 			<< "," << gazeDirection1.x << "," << gazeDirection1.y << "," << gazeDirection1.z;
 
 		// Output gaze angle (same format as head pose angle)
-		output_file << std::setprecision(3);
-		output_file << "," << gaze_angle[0] << "," << gaze_angle[1];
+		csv_line << std::setprecision(3);
+		csv_line << "," << gaze_angle[0] << "," << gaze_angle[1];
 
 		// Output the 2D eye landmarks
-		output_file << std::setprecision(1);
+		csv_line << std::setprecision(1);
 		for (auto eye_lmk : eye_landmarks2d)
 		{
-			output_file << "," << eye_lmk.x;
+			csv_line << "," << eye_lmk.x;
 		}
 
 		for (auto eye_lmk : eye_landmarks2d)
 		{
-			output_file << "," << eye_lmk.y;
+			csv_line << "," << eye_lmk.y;
 		}
 
 		// Output the 3D eye landmarks
 		for (auto eye_lmk : eye_landmarks3d)
 		{
-			output_file << "," << eye_lmk.x;
+			csv_line << "," << eye_lmk.x;
 		}
 
 		for (auto eye_lmk : eye_landmarks3d)
 		{
-			output_file << "," << eye_lmk.y;
+			csv_line << "," << eye_lmk.y;
 		}
 
 		for (auto eye_lmk : eye_landmarks3d)
 		{
-			output_file << "," << eye_lmk.z;
+			csv_line << "," << eye_lmk.z;
 		}
 	}
 
 	// Output the estimated head pose
 	if (output_pose)
 	{
-		output_file << std::setprecision(1);
-		output_file << "," << pose_estimate[0] << "," << pose_estimate[1] << "," << pose_estimate[2];
-		output_file << std::setprecision(3);
-		output_file << "," << pose_estimate[3] << "," << pose_estimate[4] << "," << pose_estimate[5];
+		csv_line << std::setprecision(1);
+		csv_line << "," << pose_estimate[0] << "," << pose_estimate[1] << "," << pose_estimate[2];
+		csv_line << std::setprecision(3);
+		csv_line << "," << pose_estimate[3] << "," << pose_estimate[4] << "," << pose_estimate[5];
 	}
 
 	// Output the detected 2D facial landmarks
 	if (output_2D_landmarks)
 	{
-		output_file.precision(1);
+		csv_line.precision(1);
 		// Output the 2D eye landmarks
 		for (auto lmk : landmarks_2D)
 		{
-			output_file << "," << lmk;
+			csv_line << "," << lmk;
 		}
 	}
 
 	// Output the detected 3D facial landmarks
 	if (output_3D_landmarks)
 	{
-		output_file.precision(1);
+		csv_line.precision(1);
 		// Output the 2D eye landmarks
 		for (auto lmk : landmarks_3D)
 		{
-			output_file << "," << lmk;
+			csv_line << "," << lmk;
 		}
 	}
 
 	if (output_model_params)
 	{
-		output_file.precision(3);
+		csv_line.precision(3);
 		for (int i = 0; i < 6; ++i)
 		{
-			output_file << "," << rigid_shape_params[i];
+			csv_line << "," << rigid_shape_params[i];
 		}
 		// Output the non_rigid shape parameters
 		for (auto lmk : pdm_model_params)
 		{
-			output_file << "," << lmk;
+			csv_line << "," << lmk;
 		}
 	}
 
@@ -288,14 +290,14 @@ void RecorderCSV::WriteLine(int face_id, int frame_num, double time_stamp, bool 
 	{
 
 		// write out ar the correct index
-		output_file.precision(2);
+		csv_line.precision(2);
 		for (std::string au_name : au_names_reg)
 		{
 			for (auto au_reg : au_intensities)
 			{
 				if (au_name.compare(au_reg.first) == 0)
 				{
-					output_file << "," << au_reg.second;
+					csv_line << "," << au_reg.second;
 					break;
 				}
 			}
@@ -305,11 +307,11 @@ void RecorderCSV::WriteLine(int face_id, int frame_num, double time_stamp, bool 
 		{
 			for (size_t p = 0; p < au_names_reg.size(); ++p)
 			{
-				output_file << ",0";
+				csv_line << ",0";
 			}
 		}
 
-		output_file.precision(1);
+		csv_line.precision(1);
 		// write out ar the correct index
 		for (std::string au_name : au_names_class)
 		{
@@ -317,7 +319,7 @@ void RecorderCSV::WriteLine(int face_id, int frame_num, double time_stamp, bool 
 			{
 				if (au_name.compare(au_class.first) == 0)
 				{
-					output_file << "," << au_class.second;
+					csv_line << "," << au_class.second;
 					break;
 				}
 			}
@@ -327,11 +329,14 @@ void RecorderCSV::WriteLine(int face_id, int frame_num, double time_stamp, bool 
 		{
 			for (size_t p = 0; p < au_names_class.size(); ++p)
 			{
-				output_file << ",0";
+				csv_line << ",0";
 			}
 		}
 	}
-	output_file << "\n";
+	csv_line << "\n";
+	output_file << csv_line.str();
+
+	return csv_line.str();
 }
 
 // Closing the file and cleaning up

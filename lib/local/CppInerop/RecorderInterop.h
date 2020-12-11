@@ -109,9 +109,9 @@ namespace UtilitiesOF {
 			m_recorder->Close();
 		}
 
-		void WriteObservation()
+		System::String^ WriteObservation()
 		{
-			m_recorder->WriteObservation();
+			return gcnew System::String(m_recorder->WriteObservation().c_str());
 		}
 
 		void WriteObservationTracked()

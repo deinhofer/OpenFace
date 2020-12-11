@@ -295,8 +295,9 @@ void RecorderOpenFace::SetObservationVisualization(const cv::Mat &vis_track)
 
 }
 
-void RecorderOpenFace::WriteObservation()
+std::string RecorderOpenFace::WriteObservation()
 {
+	std::string csv_line = std::string();
 
 	// Write out the CSV file (it will always be there, even if not outputting anything more but frame/face numbers)	
 	if(!csv_recorder.isOpen())
@@ -335,7 +336,7 @@ void RecorderOpenFace::WriteObservation()
 			params.outputAUs(), params.outputGaze(), num_face_landmarks, num_model_modes, num_eye_landmarks, au_names_class, au_names_reg);
 	}
 
-	this->csv_recorder.WriteLine(face_id, frame_number, timestamp, landmark_detection_success, 
+	csv_line = csv_recorder.WriteLine(face_id, frame_number, timestamp, landmark_detection_success, 
 		landmark_detection_confidence, landmarks_2D, landmarks_3D, pdm_params_local, pdm_params_global, head_pose,
 		gaze_direction0, gaze_direction1, gaze_angle, eye_landmarks2D, eye_landmarks3D, au_intensities, au_occurences);
 
@@ -378,7 +379,7 @@ void RecorderOpenFace::WriteObservation()
 		aligned_face = cv::Mat();
 
 	}
-
+	return csv_line;
 }
 
 void RecorderOpenFace::WriteObservationTracked()
