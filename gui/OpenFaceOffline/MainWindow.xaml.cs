@@ -115,8 +115,11 @@ namespace OpenFaceOffline
         FaceAnalyserManaged face_analyser;
         GazeAnalyserManaged gaze_analyser;
 
-        public bool DetectPose = false;
-        public bool DetectGaze = false;
+        //TcpServer
+        TcpServer tcpServer = null;
+
+        public bool DetectPose = true;
+        public bool DetectGaze = true;
 
         public bool RecordAligned { get; set; } = false; // Aligned face images
         public bool RecordHOG { get; set; } = false; // HOG features extracted from face images
@@ -175,6 +178,8 @@ namespace OpenFaceOffline
             if(!DetectPose)
             {
                 RecordPose = false;
+                Record2DLandmarks = false;
+
                 ShowGeometry = false;
             }
             if(!DetectGaze)
@@ -199,6 +204,9 @@ namespace OpenFaceOffline
 
             gaze_analyser = new GazeAnalyserManaged();
 
+            //Init TcpListener for tracking live stream
+            tcpServer = new TcpServer(11000);
+            tcpServer.Start();
         }
 
         // ----------------------------------------------------------
@@ -286,17 +294,18 @@ namespace OpenFaceOffline
                 // The face analysis step (for AUs and eye gaze)
                 face_analyser.AddNextFrame(frame, landmark_detector.CalculateAllLandmarks(), detection_succeeding, false);
 
-                //gaze_analyser.AddNextFrame(landmark_detector, detection_succeeding, reader.GetFx(), reader.GetFy(), reader.GetCx(), reader.GetCy());
+                gaze_analyser.AddNextFrame(landmark_detector, detection_succeeding, reader.GetFx(), reader.GetFy(), reader.GetCx(), reader.GetCy());
 
                 // Only the final face will contain the details
                 VisualizeFeatures(frame, visualizer_of, landmark_detector.CalculateAllLandmarks(), landmark_detector.GetVisibilities(), detection_succeeding, true, false, reader.GetFx(), reader.GetFy(), reader.GetCx(), reader.GetCy(), progress);
 
                 // Record an observation
-                //RecordObservation(recorder, visualizer_of.GetVisImage(), 0, detection_succeeding, reader.GetFx(), reader.GetFy(), reader.GetCx(), reader.GetCy(), reader.GetTimestamp(), reader.GetFrameNumber());
+                RecordObservation(recorder, visualizer_of.GetVisImage(), 0, detection_succeeding, reader.GetFx(), reader.GetFy(), reader.GetCx(), reader.GetCy(), reader.GetTimestamp(), reader.GetFrameNumber());
+                tcpServer.Send("Frame <"+reader.GetFrameNumber()+">, timestamp: "+reader.GetTimestamp());
 
                 if(RecordTracked)
                 { 
-                    //recorder.WriteObservationTracked();
+                    recorder.WriteObservationTracked();
                 }
 
                 while (thread_running & thread_paused && skip_frames == 0)
@@ -324,8 +333,19 @@ namespace OpenFaceOffline
             }
 
             // Close the open video/webcam
-            reader.Close();
+            if (reader != null)
+            {
+                try
+                {
+                    reader.Close();
+                }catch(AccessViolationException e)
+                {
 
+                }
+            }
+
+            //Close the tcp server
+            tcpServer.Stop();
             EndMode();
 
         }
@@ -426,7 +446,6 @@ namespace OpenFaceOffline
 
                     // Record an observation
                     RecordObservation(recorder, visualizer_of.GetVisImage(), i, detection_succeeding, reader.GetFx(), reader.GetFy(), reader.GetCx(), reader.GetCy(), 0, 0);
-
                 }
 
                 recorder.SetObservationVisualization(visualizer_of.GetVisImage());
@@ -604,9 +623,9 @@ namespace OpenFaceOffline
 
                     //mad: Test reliability of AU
                     //Console.WriteLine("AU45: " + au_regs_scaled["AU45"]);
-                    String au1 = "AU12";
+                    String au1 = "AU06";
                     String au2 = "AU12";
-                    if (au_regs_scaled[au1] >= 0.1 && au_regs_scaled[au2] >=0.1)
+                    if (au_regs_scaled[au1] >= 0.2 && au_regs_scaled[au2] >=0.2)
                     {
                         double meanVal = (au_regs_scaled[au1] + au_regs_scaled[au2]) / 2;
                         Console.Beep((int)(5000 * meanVal), 150);
