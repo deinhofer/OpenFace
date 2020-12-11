@@ -301,7 +301,6 @@ namespace OpenFaceOffline
 
                 // Record an observation
                 RecordObservation(recorder, visualizer_of.GetVisImage(), 0, detection_succeeding, reader.GetFx(), reader.GetFy(), reader.GetCx(), reader.GetCy(), reader.GetTimestamp(), reader.GetFrameNumber());
-                tcpServer.Send("Frame <"+reader.GetFrameNumber()+">, timestamp: "+reader.GetTimestamp());
 
                 if(RecordTracked)
                 { 
@@ -344,8 +343,6 @@ namespace OpenFaceOffline
                 }
             }
 
-            //Close the tcp server
-            tcpServer.Stop();
             EndMode();
 
         }
@@ -553,9 +550,11 @@ namespace OpenFaceOffline
 
             recorder.SetObservationVisualization(vis_image);
 
-            recorder.WriteObservation();
+            string csvLine=recorder.WriteObservation();
 
-
+            //Finally send the data also via the tcp socket
+            //Console.Write(csvLine);
+            tcpServer.Send(csvLine);
         }
 
         private void VisualizeFeatures(RawImage frame, Visualizer visualizer, List<Tuple<float, float>> landmarks, List<bool> visibilities, bool detection_succeeding, 
@@ -974,6 +973,9 @@ namespace OpenFaceOffline
         // Cleanup stuff when closing the window
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            //Close the tcp server
+            tcpServer.Stop();
+
             if (processing_thread != null)
             {
                 // Stop capture and tracking
