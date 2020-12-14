@@ -120,16 +120,18 @@ namespace OpenFaceOffline
 
         public bool DetectPose = true;
         public bool DetectGaze = true;
+        public bool MouseClick = false;
+        public bool BeepFeedback = false;
 
         public bool RecordAligned { get; set; } = false; // Aligned face images
         public bool RecordHOG { get; set; } = false; // HOG features extracted from face images
-        public bool Record2DLandmarks { get; set; } = true; // 2D locations of facial landmarks (in pixels)
-        public bool Record3DLandmarks { get; set; } = true; // 3D locations of facial landmarks (in pixels)
-        public bool RecordModelParameters { get; set; } = true; // Facial shape parameters (rigid and non-rigid geometry)
+        public bool Record2DLandmarks { get; set; } = false; // 2D locations of facial landmarks (in pixels)
+        public bool Record3DLandmarks { get; set; } = false; // 3D locations of facial landmarks (in pixels)
+        public bool RecordModelParameters { get; set; } = false; // Facial shape parameters (rigid and non-rigid geometry)
         public bool RecordPose { get; set; } = true; // Head pose (position and orientation)
         public bool RecordAUs { get; set; } = true; // Facial action units
-        public bool RecordGaze { get; set; } = true; // Eye gaze
-        public bool RecordTracked { get; set; } = true; // Recording tracked videos or images
+        public bool RecordGaze { get; set; } = false; // Eye gaze
+        public bool RecordTracked { get; set; } = false; // Recording tracked videos or images
 
         // Visualisation options
         public bool ShowTrackedVideo { get; set; } = true; // Showing the actual tracking
@@ -627,8 +629,11 @@ namespace OpenFaceOffline
                     if (au_regs_scaled[au1] >= 0.2 && au_regs_scaled[au2] >=0.2)
                     {
                         double meanVal = (au_regs_scaled[au1] + au_regs_scaled[au2]) / 2;
-                        Console.Beep((int)(5000 * meanVal), 150);
-                        if (meanVal >= 0.45)
+                        if (BeepFeedback)
+                        {
+                            Console.Beep((int)(5000 * meanVal), 150);
+                        }
+                        if (MouseClick && meanVal >= 0.45)
                         {
                             mouse_event(MouseEventLeftDown, 0, 0, 0, new System.IntPtr());
                             mouse_event(MouseEventLeftUp, 0, 0, 0, new System.IntPtr());
