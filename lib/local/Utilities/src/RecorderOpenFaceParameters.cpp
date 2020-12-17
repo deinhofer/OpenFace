@@ -71,6 +71,7 @@ RecorderOpenFaceParameters::RecorderOpenFaceParameters(std::vector<std::string> 
 	this->output_hog = false;
 	this->output_tracked = false;
 	this->output_aligned_faces = false;
+	this->output_to_csv_file = false;
 
 	this->record_aligned_bad = true;
 
@@ -156,7 +157,7 @@ RecorderOpenFaceParameters::RecorderOpenFaceParameters(std::vector<std::string> 
 
 RecorderOpenFaceParameters::RecorderOpenFaceParameters(bool sequence, bool is_from_webcam, bool output_2D_landmarks, bool output_3D_landmarks,
 	bool output_model_params, bool output_pose, bool output_AUs, bool output_gaze, bool output_hog, bool output_tracked,
-	bool output_aligned_faces, bool record_bad, float fx, float fy, float cx, float cy, double fps_vid_out)
+	bool output_aligned_faces, bool record_bad, float fx, float fy, float cx, float cy, double fps_vid_out, bool output_to_csv_file)
 {
 	this->is_sequence = sequence;
 	this->is_from_webcam = is_from_webcam;
@@ -188,4 +189,5 @@ RecorderOpenFaceParameters::RecorderOpenFaceParameters(bool sequence, bool is_fr
 	this->output_hog = output_hog;
 	this->output_tracked = output_tracked;
 	this->output_aligned_faces = output_aligned_faces;
+	this->output_to_csv_file = output_to_csv_file;
 }

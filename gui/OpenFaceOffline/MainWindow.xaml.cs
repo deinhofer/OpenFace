@@ -123,6 +123,9 @@ namespace OpenFaceOffline
         public bool MouseClick = false;
         public bool BeepFeedback = false;
 
+        public bool RecordCSVFile { get; set; } = false; // Record values to CSV file
+        public bool RecordCSVSocket { get; set; } = true; // Record values to Socket
+
         public bool RecordAligned { get; set; } = false; // Aligned face images
         public bool RecordHOG { get; set; } = false; // HOG features extracted from face images
         public bool Record2DLandmarks { get; set; } = false; // 2D locations of facial landmarks (in pixels)
@@ -272,7 +275,7 @@ namespace OpenFaceOffline
             RecorderOpenFaceParameters rec_params = new RecorderOpenFaceParameters(true, reader.IsWebcam(),
                 Record2DLandmarks, Record3DLandmarks, RecordModelParameters, RecordPose, RecordAUs,
                 RecordGaze, RecordHOG, RecordTracked, RecordAligned, false,
-                reader.GetFx(), reader.GetFy(), reader.GetCx(), reader.GetCy(), reader.GetFPS());
+                reader.GetFx(), reader.GetFy(), reader.GetCx(), reader.GetCy(), reader.GetFPS(), RecordCSVFile);
 
             RecorderOpenFace recorder = new RecorderOpenFace(reader.GetName(), rec_params, record_root);
 
@@ -403,7 +406,7 @@ namespace OpenFaceOffline
                 RecorderOpenFaceParameters rec_params = new RecorderOpenFaceParameters(false, false,
                     Record2DLandmarks, Record3DLandmarks, RecordModelParameters, RecordPose, RecordAUs,
                     RecordGaze, RecordHOG, RecordTracked, RecordAligned, true,
-                    reader.GetFx(), reader.GetFy(), reader.GetCx(), reader.GetCy(), 0);
+                    reader.GetFx(), reader.GetFy(), reader.GetCx(), reader.GetCy(), 0,RecordCSVFile);
 
                 RecorderOpenFace recorder = new RecorderOpenFace(reader.GetName(), rec_params, record_root);
 
@@ -556,7 +559,10 @@ namespace OpenFaceOffline
 
             //Finally send the data also via the tcp socket
             //Console.Write(csvLine);
-            tcpServer.Send(csvLine);
+            if (RecordCSVSocket)
+            {
+                tcpServer.Send(csvLine);
+            }
         }
 
         private void VisualizeFeatures(RawImage frame, Visualizer visualizer, List<Tuple<float, float>> landmarks, List<bool> visibilities, bool detection_succeeding, 

@@ -37,7 +37,11 @@
                 </MenuItem>
             </MenuItem>
             <MenuItem Name="RecordingMenu" Header="Record" >
-                <MenuItem IsCheckable="True" Header="Record AUs" IsChecked="{Binding RecordAUs}"/>
+                <MenuItem IsCheckable="True" Header="Record CSV to File" IsChecked="{Binding RecordCSVFile}"/>
+                <MenuItem IsCheckable="True" Header="Record CSV to Socket" IsChecked="{Binding RecordCSVSocket}"/>
+                <Separator Height="5" Margin="5" BorderThickness="3" Width="300"/>
+                <MenuItem IsCheckable="True" Header="Record AUs" IsChecked="{Binding RecordAUs}">
+                </MenuItem>
                 <MenuItem IsCheckable="True" Header="Record pose"  IsChecked="{Binding RecordPose}"/>
                 <MenuItem IsCheckable="True" Header="Record 2D landmarks" IsChecked="{Binding Record2DLandmarks}" />
                 <MenuItem IsCheckable="True" Header="Record gaze" IsChecked="{Binding RecordGaze}"/>
